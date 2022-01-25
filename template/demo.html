@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %}Demo{% endblock %}
+{% block topheading %}Demo{% endblock %}
+
+{% block content %}
+
+    <div class="row">
+        <div id="plotDIV" class="col-md-6">
+            {{ graph|safe }}
+        </div>
+        <div class="col-md-6">
+            {#            <foreignObject x="80" y="60" width="480" height="266">#}
+            {##}
+            {#                <video#}
+            {#                        id="my-video"#}
+            {#                        class="video-js"#}
+            {#                        controls#}
+            {#                        preload="auto"#}
+            {#                        width="640"#}
+            {#                        height="264"#}
+            {#                    poster="MY_VIDEO_POSTER.jpg"#}
+            {#                        data-setup="{}"#}
+            {#                >#}
+            {#                    <source src="http://127.0.0.1:3000/vod/DYS3495_20190121.mp4/playlist.m3u8"#}
+            {#                            type="application/x-mpegURL"/>#}
+            {#                    <p class="vjs-no-js">#}
+            {#                        To view this video please enable JavaScript, and consider upgrading to a#}
+            {#                        web browser that#}
+            {#                        <a href="https://videojs.com/html5-video-support/" target="_blank"#}
+            {#                        >supports HTML5 video</a#}
+            {#                        >#}
+            {#                    </p>#}
+            {#                </video>#}
+            {#            </foreignObject>#}
+        </div>
+
+    </div>
+
+    <style>
+        rect.bg {
+            fill: transparent !important;
+        }
+
+        .gridlayer {
+            display: none;
+        }
+
+
+    </style>
+{% endblock %}
+
+
+
+{% block scripts %}
+    <script>
+
+        function post_script() {
+            $(".bglayer")[0].innerHTML = ` <foreignObject x="80" y="60" width="480" height="266">
+                <video
+                        id="my-video"
+                        class="video-js"
+{#                        controls #}
+{#autoplay muted#}
+                        preload="auto"
+                        width="640"
+                        height="264"
+                        data-setup="{}"  >
+                    <source src="http://127.0.0.1:3000/vod/DYS1002_20121219.mp4/playlist.m3u8"       type="application/x-mpegURL"/>
+                    <p class="vjs-no-js">
+                        To view this video please enable JavaScript, and consider upgrading to a
+                        web browser that
+                        <a href="https://videojs.com/html5-video-support/" target="_blank"
+                        >supports HTML5 video</a
+                        >
+                    </p>
+                </video>
+            </foreignObject>`
+
+            videoPlayer = videojs('my-video',);
+            observeDOM($(".slider-label")[0], function (m) {
+                observegd()
+            });
+            document.getElementsByClassName("updatemenu-button")[1].dispatchEvent(new Event('click'));   //pause the video at beginning
+            // handle play button
+            document.getElementsByClassName("updatemenu-button")[0].addEventListener("click", function () {
+                videoPlayer.play();
+            });
+            document.getElementsByClassName("updatemenu-button")[1].addEventListener("click", function () {
+                videoPlayer.pause();
+            });
+        }
+
+
+        observeDOM = (function () {
+            var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+
+            return function (obj, callback) {
+                if (!obj || obj.nodeType !== 1) return;
+
+                if (MutationObserver) {
+                    // define a new observer
+                    var mutationObserver = new MutationObserver(callback)
+
+                    // have the observer observe foo for changes in children
+                    mutationObserver.observe(obj, {
+                        attributes: true,
+                        childList: false, subtree: false
+                    })
+                    return mutationObserver
+                }
+
+                // browser support fallback
+                else if (window.addEventListener) {
+                    obj.addEventListener('DOMNodeInserted', callback, false)
+                    obj.addEventListener('DOMNodeRemoved', callback, false)
+                }
+            }
+        })()
+
+        var videoPlayer;
+        var firstTime = true;
+
+        function f() {
+            if ((document.getElementsByClassName("bglayer"))[0] === 'undefined') {
+                console.log('checkTime');
+                setTimeout(f, 100);
+            } else {
+                firstTime = false
+                post_script()
+            }
+        }
+
+        f();
+
+        function observegd() {
+            console.log("han");
+            if (document.getElementById("my-video") !== null) {
+                if (typeof videoPlayer !== 'undefined') {
+                    if (!videoPlayer.paused()) {
+                        console.log("paused");
+                        currentFrame = parseInt($(".slider-label").html().split('=')[1])
+                        console.log(currentFrame, " of ", TotalFrames);
+                        videoPlayer.currentTime(videoPlayer.duration() * (currentFrame / TotalFrames))
+
+                        {#$('.updatemenu-button').click()#}
+                    }
+                }
+            }
+        }
+    </script>
+{% endblock %}
