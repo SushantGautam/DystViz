@@ -3,6 +3,7 @@ import tempfile
 from io import StringIO
 
 import numpy as np
+import pandas as pd
 from django.http import HttpResponse
 from django.shortcuts import render
 
@@ -119,3 +120,14 @@ def PlotSingleMP4Json(mp4JsonFolderName):
         fig.write_html(file=path, post_script=post_script, full_html=False, include_plotlyjs='cdn', )
         path.seek(0)
         return path.read()
+
+
+def list(request):
+    # D:\DystoniaCoalition\scripts\videoProfile.ipynb
+    df = pd.read_csv("D:\\DystoniaCoalition\\processed\\videoProfile.csv")
+    table_html = df.to_html(escape=False)
+    return render(request, 'list.html', {"table": table_html[:7] + 'id="%s" ' % "example" + table_html[7:]})
+
+
+def Profiling(request):
+    return HttpResponse(open("D:/DystoniaCoalition/processed/pandasProfiling.html").read())

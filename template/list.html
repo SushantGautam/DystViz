@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Data List{% endblock %}
+{% block topheading %}Data List{% endblock %}
+
+{% block content %}
+    {{ table| safe }}
+{% endblock %}
+{% block scripts %}
+    <script>
+        $(document).ready(function () {
+
+            // Setup - add a text input to each footer cell
+
+
+            $('#example').DataTable({
+                {#responsive: true,#}
+                stateSave: true,
+                "lengthMenu": [10, 25, 50, 75, 100, 500],
+
+            })
+        })
+
+    </script>
+{% endblock %}
