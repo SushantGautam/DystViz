@@ -20,6 +20,16 @@ import os
 
 import plotly.graph_objects as go
 
+videoProfile = None
+
+
+def getvideoProfile():
+    global videoProfile
+    if videoProfile is None:
+        videoProfile = pd.read_csv("D:\\DystoniaCoalition\\processed\\videoProfile.csv")
+    return videoProfile
+
+
 openposeOutputDirectory = "D:\DystoniaCoalition\OpenPose100\\"
 openposeOutputsMain = os.listdir(openposeOutputDirectory)[1]  # single folder
 
@@ -29,18 +39,17 @@ class Graph(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(Graph, self).get_context_data(**kwargs)
-
-        x = [-2, 0, 4, 6, 7]
-        y = [q ** 2 - q + 3 for q in x]
-        trace1 = go.Scatter(x=x, y=y, marker={'color': 'red', 'symbol': 104, 'size': 10},
-                            mode="lines", name='1st Trace')
-
-        layout = go.Layout(title="Meine Daten", xaxis={'title': 'x1'}, yaxis={'title': 'x2'})
-        figure = go.Figure(data=[trace1], layout=layout)
-
         context['graph'] = PlotSingleMP4Json(openposeOutputsMain)
-
         return context
+
+
+def SingleGraph(request, projectID):
+    context = {}
+    df = getvideoProfile()
+    fileName = df[df['PID'] == projectID]['NAME'].values[0]
+    context['graph'] = PlotSingleMP4Json(fileName)
+    context['fileName'] = fileName
+    return render(request, 'demo.html', context)
 
 
 import os
@@ -124,7 +133,10 @@ def PlotSingleMP4Json(mp4JsonFolderName):
 
 def list(request):
     # D:\DystoniaCoalition\scripts\videoProfile.ipynb
-    df = pd.read_csv("D:\\DystoniaCoalition\\processed\\videoProfile.csv")
+    df = getvideoProfile()
+    df = df.drop(['NAME', ], axis=1)
+    df['PID'] = df['PID'].apply(lambda x: '<a href="/SingleGraph/' + str(x) + '">' + str(x) + '</a>')
+
     table_html = df.to_html(escape=False)
     return render(request, 'list.html', {"table": table_html[:7] + 'id="%s" ' % "example" + table_html[7:]})
 

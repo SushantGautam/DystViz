@@ -5,6 +5,7 @@ from WebApp import views
 
 urlpatterns = [
     path('', views.Graph.as_view(), name='Graph'),
+    path('SingleGraph/<int:projectID>', views.SingleGraph, name='SingleGraph'),
     path('list', views.list, name='list'),
     path('demo', views.demo, name='demo'),
     path('Profiling', views.Profiling, name='Profiling'),

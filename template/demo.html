@@ -65,7 +65,7 @@
                         width="640"
                         height="264"
                         data-setup="{}"  >
-                    <source src="http://127.0.0.1:3000/vod/DYS1002_20121219.mp4/playlist.m3u8"       type="application/x-mpegURL"/>
+                    <source src="http://127.0.0.1:3000/vod/{{fileName}}/playlist.m3u8"       type="application/x-mpegURL"/>
                     <p class="vjs-no-js">
                         To view this video please enable JavaScript, and consider upgrading to a
                         web browser that
@@ -87,6 +87,8 @@
             });
             document.getElementsByClassName("updatemenu-button")[1].addEventListener("click", function () {
                 videoPlayer.pause();
+            });
+            videoPlayer.on('play', function () {
             });
         }
 
@@ -141,11 +143,15 @@
                         currentFrame = parseInt($(".slider-label").html().split('=')[1])
                         console.log(currentFrame, " of ", TotalFrames);
                         videoPlayer.currentTime(videoPlayer.duration() * (currentFrame / TotalFrames))
-
+                        {#document.getElementsByClassName("updatemenu-button")[0].dispatchEvent(new Event('click')); // play the video#}
                         {#$('.updatemenu-button').click()#}
                     }
                 }
             }
         }
+
+        $('.slider-grip-rect').on("mouseup", function (e) {
+            document.getElementsByClassName("updatemenu-button")[0].dispatchEvent(new Event('click')); // play the video
+        });
     </script>
 {% endblock %}
