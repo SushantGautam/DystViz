@@ -1,5 +1,6 @@
 import json
 import tempfile
+from collections import deque, Counter
 from io import StringIO
 
 import numpy as np
@@ -39,7 +40,7 @@ class Graph(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(Graph, self).get_context_data(**kwargs)
-        context['graph'] = PlotSingleMP4Json(openposeOutputsMain)
+        context['graph'], JSONDict = PlotSingleMP4Json(openposeOutputsMain)
         return context
 
 
@@ -47,12 +48,19 @@ def SingleGraph(request, projectID):
     context = {}
     df = getvideoProfile()
     fileName = df[df['PID'] == projectID]['NAME'].values[0]
-    context['graph'] = PlotSingleMP4Json(fileName)
+    context['graph'], JSONDict = PlotSingleMP4Json(fileName)
+    context['scatter'], context['most_common'] = CoordinateToChange(JSONDict)
     context['fileName'] = fileName
     return render(request, 'demo.html', context)
 
 
 import os
+
+
+def closest_node(node, nodes):
+    nodes = np.asarray(nodes)
+    dist_2 = np.sum((nodes - node) ** 2, axis=1)
+    return np.argmin(dist_2)
 
 
 # @cache_page(60 * 60 * 15)
@@ -62,17 +70,44 @@ def MP4toJson(mp4JsonFolder):
 
     mp4toJSON = []
 
+    temp_queue = deque([(0, 0)], maxlen=1)
+
     for idx, filex in enumerate(openposeOutputs):
         frameNumber = int(filex.split('_')[2])
         data = json.load(open(os.path.join(mp4foldername, filex)))
         peoples_frame = []
-        for people in data['people']:
-            peopleCoordinate = []
+        singlePersonData = []
+        peopleCoordinate = []
+
+        if (len(data['people']) >= 1):
+            if (len(data['people']) > 1):
+                NeckPoints = []
+                for kP in data['people']:
+                    eP = kP['pose_keypoints_2d']
+                    neckpoint = [(eP[i], eP[i + 1]) for i in range(0, 75, 3)][1]
+                    NeckPoints.append(neckpoint)
+                singlePersonData = data['people'][closest_node(temp_queue[0], NeckPoints)]['pose_keypoints_2d']
+            elif (len(data['people']) == 1):
+                singlePersonData = data['people'][0]['pose_keypoints_2d']
+            temp_queue.append([(singlePersonData[i], singlePersonData[i + 1]) for i in range(0, 75, 3)][1])
+
+            # for people in singlePersonData:
+
             for i in range(0, 75, 3):
-                if not [people['pose_keypoints_2d'][i], people['pose_keypoints_2d'][i + 1]] == [0, 0]:
+                if not [singlePersonData[i], singlePersonData[i + 1]] == [0, 0]:
                     peopleCoordinate.append(
-                        [people['pose_keypoints_2d'][i], people['pose_keypoints_2d'][i + 1], np.floor((i + 1) / 3)])
-            peoples_frame.append(peopleCoordinate)
+                        [singlePersonData[i], singlePersonData[i + 1], np.floor((i + 1) / 3)])
+
+        peoples_frame.append(peopleCoordinate)
+
+        # for people in singlePersonData['people']:
+        #     peopleCoordinate = []
+        #     for i in range(0, 75, 3):
+        #         if not [people['pose_keypoints_2d'][i], people['pose_keypoints_2d'][i + 1]] == [0, 0]:
+        #             peopleCoordinate.append(
+        #                 [people['pose_keypoints_2d'][i], people['pose_keypoints_2d'][i + 1], np.floor((i + 1) / 3)])
+        #     peoples_frame.append(peopleCoordinate)
+
         # if (len(data['people'])!=1):
         #     print(len(data['people']))
         mp4toJSON.append([frameNumber, peoples_frame])
@@ -128,7 +163,7 @@ def PlotSingleMP4Json(mp4JsonFolderName):
         #     # f.write('TEST\n')
         fig.write_html(file=path, post_script=post_script, full_html=False, include_plotlyjs='cdn', )
         path.seek(0)
-        return path.read()
+        return path.read(), JsonDict
 
 
 def list(request):
@@ -143,3 +178,25 @@ def list(request):
 
 def Profiling(request):
     return HttpResponse(open("D:/DystoniaCoalition/processed/pandasProfiling.html").read())
+
+
+from scipy.signal import savgol_filter
+
+
+def CoordinateToChange(Coordinates):
+    for idx, eachFrame in enumerate(Coordinates):
+        data = (eachFrame[1][0], len(eachFrame[1]))
+    x = [i[0] for i in Coordinates]
+    y = [len(i[1][0]) for i in Coordinates]
+
+    with StringIO() as path:
+        # with os.fdopen(figureVar, 'w') as f:
+        #     # f.write('TEST\n')
+
+        fig = px.scatter(y)
+        most_common = Counter(y).most_common(5)
+        fig.write_html(file=path,
+                       # post_script=post_script,
+                       full_html=False, include_plotlyjs='cdn', )
+        path.seek(0)
+        return path.read(), most_common
