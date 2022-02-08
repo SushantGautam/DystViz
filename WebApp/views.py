@@ -2,6 +2,7 @@ import json
 import tempfile
 from collections import deque, Counter
 from io import StringIO
+from math import ceil, floor
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,9 @@ from django.shortcuts import render
 # Create your views here.
 from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView
+from numpy import nan
+from scipy.ndimage import maximum_filter1d
+from scipy.stats import mode
 
 
 def demo(request):
@@ -50,6 +54,7 @@ def SingleGraph(request, projectID):
     fileName = df[df['PID'] == projectID]['NAME'].values[0]
     context['graph'], JSONDict = PlotSingleMP4Json(fileName)
     context['scatter'], context['most_common'] = CoordinateToChange(JSONDict)
+    context['EstimateCLasses'] = EstimateCLasses(JSONDict)
     context['fileName'] = fileName
     return render(request, 'demo.html', context)
 
@@ -177,7 +182,7 @@ def list(request):
 
 
 def Profiling(request):
-    return HttpResponse(open("D:/DystoniaCoalition/processed/pandasProfiling.html").read())
+    return HttpResponse(open("D:/DystoniaCoalition/processed/videoProfiling.html").read())
 
 
 from scipy.signal import savgol_filter
@@ -200,3 +205,30 @@ def CoordinateToChange(Coordinates):
                        full_html=False, include_plotlyjs='cdn', )
         path.seek(0)
         return path.read(), most_common
+
+
+from numpy.lib.stride_tricks import sliding_window_view
+
+wlen = 30
+
+
+def EstimateCLasses(Coordinates):
+    arr = [len(i[1][0]) for i in Coordinates]
+    left = [nan] * ceil(wlen / 2)
+    left.extend(arr)
+    right = [nan] * floor(wlen / 2)
+    left.extend(right)
+    new = [Counter(e[e != 0]).most_common(1)[0][0] for e in
+           sliding_window_view(left, wlen)]
+    pass
+    #
+    # x = [i[0] for i in Coordinates]
+    # y = [len(i[1][0]) for i in Coordinates]
+    with StringIO() as path:
+        fig = px.scatter(new)
+        # fig.show()
+        fig.write_html(file=path,
+                       # post_script=post_script,
+                       full_html=False, include_plotlyjs='cdn', )
+        path.seek(0)
+        return path.read()
