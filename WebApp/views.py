@@ -1,5 +1,5 @@
+import itertools
 import json
-import tempfile
 from collections import deque, Counter
 from io import StringIO
 from math import ceil, floor
@@ -8,13 +8,9 @@ import numpy as np
 import pandas as pd
 from django.http import HttpResponse
 from django.shortcuts import render
-
 # Create your views here.
-from django.views.decorators.cache import cache_page
 from django.views.generic import TemplateView
 from numpy import nan
-from scipy.ndimage import maximum_filter1d
-from scipy.stats import mode
 
 
 def demo(request):
@@ -22,8 +18,6 @@ def demo(request):
 
 
 import os
-
-import plotly.graph_objects as go
 
 videoProfile = None
 
@@ -54,6 +48,7 @@ def SingleGraph(request, projectID):
     fileName = df[df['PID'] == projectID]['NAME'].values[0]
     context['graph'], JSONDict = PlotSingleMP4Json(fileName)
     context['scatter'], context['most_common'] = CoordinateToChange(JSONDict)
+    context['IfFeaturePoll'] = IfFeaturePoll(JSONDict)
     context['EstimateCLasses'] = EstimateCLasses(JSONDict)
     context['fileName'] = fileName
     return render(request, 'demo.html', context)
@@ -78,7 +73,10 @@ def MP4toJson(mp4JsonFolder):
     temp_queue = deque([(0, 0)], maxlen=1)
 
     for idx, filex in enumerate(openposeOutputs):
-        frameNumber = int(filex.split('_')[2])
+        try:
+            frameNumber = int(filex.split('_')[2])
+        except:
+            frameNumber = int(filex.split('_')[1])
         data = json.load(open(os.path.join(mp4foldername, filex)))
         peoples_frame = []
         singlePersonData = []
@@ -128,9 +126,6 @@ import plotly.express as px
 
 # @cache_page(60 * 60 * 15)
 def PlotSingleMP4Json(mp4JsonFolderName):
-    import plotly.graph_objects as go
-    import plotly.tools as tls
-
     # for idv, eachFrame in enumerate(mp4toJSON[0:5]): #change
     # for p in eachFrame:
     # fig, ax = plt.subplots()
@@ -146,15 +141,19 @@ def PlotSingleMP4Json(mp4JsonFolderName):
     #             s = e[0]
     #             pass
 
-    fig = px.scatter(x=[e[0] for idx, eachFrame in enumerate(JsonDict) for p in eachFrame[1] for e in p],
-                     y=[e[1] for idx, eachFrame in enumerate(JsonDict) for p in eachFrame[1] for e in p],
+    data = {'x': [e[0] for idx, eachFrame in enumerate(JsonDict) for p in eachFrame[1] for e in p],
+            'y': [e[1] for idx, eachFrame in enumerate(JsonDict) for p in eachFrame[1] for e in p],
+            'animation_frame': [idx for idx, eachFrame in enumerate(JsonDict) for p in eachFrame[1] for e in p],
+            "animation_group": [pidx for idx, eachFrame in enumerate(JsonDict) for p in eachFrame[1] for pidx in
+                                enumerate(p)],
+            "point": [e[2] for idx, eachFrame in enumerate(JsonDict) for p in eachFrame[1] for e in p]
+            }
+
+    df = pd.DataFrame(data)
+    # df.columns = ['x', 'y', 'animation_frame', "animation_group"]
+    fig = px.scatter(df, x="x", y="y", animation_frame="animation_frame", animation_group="animation_group",
                      range_x=[0, 640], range_y=[480, 0],
-                     animation_frame=[idx for idx, eachFrame in enumerate(JsonDict) for p in eachFrame[1] for e
-                                      in p],
-                     animation_group=[pidx for idx, eachFrame in enumerate(JsonDict) for p in eachFrame[1] for
-                                      pidx in
-                                      enumerate(p)],
-                     width=640, height=480)
+                     width=640, height=480, hover_data=['point'])
 
     post_script = '''
                 gd = document.getElementById('{plot_id}');
@@ -183,9 +182,6 @@ def list(request):
 
 def Profiling(request):
     return HttpResponse(open("D:/DystoniaCoalition/processed/videoProfiling.html").read())
-
-
-from scipy.signal import savgol_filter
 
 
 def CoordinateToChange(Coordinates):
@@ -226,6 +222,50 @@ def EstimateCLasses(Coordinates):
     # y = [len(i[1][0]) for i in Coordinates]
     with StringIO() as path:
         fig = px.scatter(new)
+        # fig.show()
+        fig.write_html(file=path,
+                       # post_script=post_script,
+                       full_html=False, include_plotlyjs='cdn', )
+        path.seek(0)
+        return path.read()
+
+
+def IfFeaturePoll(jsonDict):
+    ifFeaturePoll = []
+    for frame in jsonDict:
+        for keypoints in frame[1]:  # like each person ; keypoints has t
+            pointDict = {int(x[2]): {"x": x[0], "y": x[1]} for x in keypoints}
+            # if pointDict.get(18) and pointDict.get(0):
+            #     dif = abs(pointDict.get(18).get('x') - pointDict.get(0).get('x')) / abs(
+            #         pointDict.get(18).get('y') - pointDict.get(0).get('y'))
+            # elif pointDict.get(17) and pointDict.get(0):
+            #     dif = abs(pointDict.get(17).get('x') - pointDict.get(0).get('x')) / abs(
+            #         pointDict.get(17).get('y') - pointDict.get(0).get('y'))
+            if pointDict.get(2) and pointDict.get(12) and pointDict.get(5) and pointDict.get(9):
+                if (pointDict.get(2).get('x') > pointDict.get(12).get('x') and pointDict.get(5).get(
+                        'x') > pointDict.get(9).get('x')) or \
+                        (pointDict.get(2).get('x') < pointDict.get(12).get('x') and pointDict.get(5).get(
+                            'x') < pointDict.get(9).get('x')):
+                    ifFeaturePoll.append(1)
+                else:
+                    ifFeaturePoll.append(0)
+            else:
+                ifFeaturePoll.append(0)
+
+            # # elif pointDict.get(17) and pointDict.get(0):
+            #     dif = abs(pointDict.get(17).get('x') - pointDict.get(0).get('x')) / abs(
+            #         pointDict.get(17).get('y') - pointDict.get(0).get('y'))
+            # else:
+            #     dif = 0
+            # if dif < 1:
+            #     dif = 0
+            # else:
+            #     dif = 1
+            # ifFeaturePoll.append(dif)
+    # itertools.groupby(ifFeaturePoll)
+    pass
+    with StringIO() as path:
+        fig = px.scatter(ifFeaturePoll)
         # fig.show()
         fig.write_html(file=path,
                        # post_script=post_script,
