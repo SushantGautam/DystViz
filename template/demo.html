@@ -5,10 +5,34 @@
 {% block content %}
 
     <div class="row">
-        <div id="plotDIV" class="col-md-6">
+        <div id="plotDIV" class="col-md-8">
             {{ graph|safe }}
+
+
+            <div class="row">
+                scatter
+                <div id="scatter" class="">
+                    {{ most_common }} <br> {{ scatter|safe }}
+                </div>
+            </div>
+            <div class="row">
+                EstimateCLasses
+                <div id="scatter" class="">
+                    {{ EstimateCLasses|safe }}
+                </div>
+            </div>
+            <div class="row">
+                IfFeaturePoll
+                <div id="scatter" class="">
+                    {{ IfFeaturePoll|safe }}
+                </div>
+            </div>
         </div>
-        <div class="col-md-6">
+
+        <div class="col-md-4">
+
+            {{ singleF|safe }}
+
             {#            <foreignObject x="80" y="60" width="480" height="266">#}
             {##}
             {#                <video#}
@@ -33,26 +57,8 @@
             {#                </video>#}
             {#            </foreignObject>#}
         </div>
+    </div>
 
-    </div>
-    <div class="row">
-        scatter
-        <div id="scatter" class="col-md-6">
-            {{ most_common }} <br> {{ scatter|safe }}
-        </div>
-    </div>
-    <div class="row">
-        EstimateCLasses
-        <div id="scatter" class="col-md-6">
-            {{ EstimateCLasses|safe }}
-        </div>
-    </div>
-    <div class="row">
-        IfFeaturePoll
-        <div id="scatter" class="col-md-6">
-            {{ IfFeaturePoll|safe }}
-        </div>
-    </div>
     <style>
         rect.bg {
             fill: transparent !important;

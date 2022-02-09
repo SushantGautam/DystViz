@@ -1,4 +1,3 @@
-import itertools
 import json
 from collections import deque, Counter
 from io import StringIO
@@ -45,12 +44,16 @@ class Graph(TemplateView):
 def SingleGraph(request, projectID):
     context = {}
     df = getvideoProfile()
-    fileName = df[df['PID'] == projectID]['NAME'].values[0]
+    singleF = df[df['PID'] == projectID]
+    fileName = singleF['NAME'].values[0]
     context['graph'], JSONDict = PlotSingleMP4Json(fileName)
     context['scatter'], context['most_common'] = CoordinateToChange(JSONDict)
     context['IfFeaturePoll'] = IfFeaturePoll(JSONDict)
     context['EstimateCLasses'] = EstimateCLasses(JSONDict)
     context['fileName'] = fileName
+
+    context['singleF'] = singleF.T.to_html(escape=False, border = 0)
+
     return render(request, 'demo.html', context)
 
 
