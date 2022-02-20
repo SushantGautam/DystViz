@@ -42,7 +42,7 @@ class Graph(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(Graph, self).get_context_data(**kwargs)
         context['graph'], JSONDict = PlotSingleMP4Json(openposeOutputsMain)
-        return context  
+        return context
 
 
 tinyDB = TinyDB("D:/DystoniaCoalition/DystViz/NeckMovement_db.json")
@@ -213,7 +213,7 @@ def PlotSingleMP4Json(mp4JsonFolderName):
         return path.read(), JsonDict
 
 
-def list(request):
+def listView(request):
     # D:\DystoniaCoalition\scripts\videoProfile.ipynb
     df = getvideoProfile()
     df = df.drop(['NAME', ], axis=1)
@@ -358,3 +358,17 @@ def HeadAngle(jsonDict):
                 HeadAngle.append(angle)
                 pass
     return HeadAngle
+
+
+import io
+
+
+def ExportNeckCSV(request):
+    s = io.StringIO()
+    df = pd.DataFrame(list(VideoAnnotations.objects.filter(type='NeckMovement').values('pid', 'start', 'end', )))
+    df['start'] = df['start'].apply(lambda x: x * 100)
+    df['end'] = df['end'].apply(lambda x: x * 100)
+    df.to_csv(s)
+    return HttpResponse(s.getvalue(),
+                        # content_type='text/csv',
+                        content_type='application/force-download')
