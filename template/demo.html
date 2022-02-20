@@ -5,31 +5,49 @@
 {% block content %}
 
     <div class="row">
-        <div id="plotDIV" class="col-md-8">
+        <div id="plotDIV" class="col-md-7">
             {{ graph|safe }}
-
-
-            <div class="row">
-                scatter
-                <div id="scatter" class="">
-                    {{ most_common }} <br> {{ scatter|safe }}
-                </div>
-            </div>
-            <div class="row">
-                EstimateCLasses
-                <div id="scatter" class="">
-                    {{ EstimateCLasses|safe }}
-                </div>
-            </div>
-            <div class="row">
-                IfFeaturePoll
-                <div id="scatter" class="">
-                    {{ IfFeaturePoll|safe }}
-                </div>
-            </div>
+            {#            <div class="row">#}
+            {#                EstimateCLasses#}
+            {#                <div id="scatter" class="">#}
+            {#                    {{ EstimateCLasses|safe }}#}
+            {#                </div>#}
+            {#            </div>#}
+            {#            <div class="row">#}
+            {#                IfFeaturePoll#}
+            {#                <div id="scatter" class="">#}
+            {#                    {{ IfFeaturePoll|safe }}#}
+            {#                </div>#}
+            {#            </div>#}
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-5" style="overflow: auto ;height: 500px;">
+            <br>
+            <br>
+
+            <div class="row">
+
+                <div class="row text-end" style="justify-content: right;">
+                    <span style="font-weight: bold;">
+                        <span onclick="handleIKeypress()"> Previous(I) </span> |
+                        <span onclick="SaveToDB()">Save(O) </span> |
+                        <span onclick="handlePKeypress()"> Next(P)                        </span>
+                    </span> <br>
+                    Play(Z), Pause(X) | <br>
+                </div>
+                <div class="row text-end">
+                    <div>
+                        <input size="3" style=" width: 50px;" id="startV"
+                               value="{{ startV }}"/>
+                        <button id="startV">Start(N)</button>
+                    </div>
+                    <div>
+                        <input style=" width: 50px;" type="number" id="endV"
+                               value="{{ endV }}"/>
+                        <button id="endB">End(M)</button>
+                    </div>
+                </div>
+            </div>
 
             {{ singleF|safe }}
 
@@ -59,6 +77,15 @@
         </div>
     </div>
 
+    <div class="row">
+        {# make a handler to set values on keypress#}
+
+        <div id="scatter" class="col-xl-7 col-lg-9">
+            {#                    {{ most_common }} #}
+            <br> {{ MultipleScatterPlots|safe }}
+        </div>
+    </div>
+
     <style>
         rect.bg {
             fill: transparent !important;
@@ -75,6 +102,10 @@
 
 
 {% block scripts %}
+
+
+
+
     <script>
 
         function post_script() {
@@ -88,7 +119,7 @@
                         width="640"
                         height="264"
                         data-setup="{}"  >
-                    <source src="http://127.0.0.1:3000/vod/{{fileName}}/playlist.m3u8"       type="application/x-mpegURL"/>
+                    <source src="http://sushantgautam15:3000/vod/{{fileName}}/playlist.m3u8"       type="application/x-mpegURL"/>
                     <p class="vjs-no-js">
                         To view this video please enable JavaScript, and consider upgrading to a
                         web browser that
@@ -176,5 +207,81 @@
         $('.slider-grip-rect').on("mouseup", function (e) {
             document.getElementsByClassName("updatemenu-button")[0].dispatchEvent(new Event('click')); // play the video
         });
+
+
+        function handlePKeypress() {
+            $.notify("Loading Next {{ nextPID  }}", "info", {
+                autoHideDelay: 4000,
+            })
+            SaveToDB()
+            location.href = "/SingleGraph/{{ nextPID }}";
+        }
+
+        function handleIKeypress() {
+            $.notify("Loading Previous {{ prevPID  }}", "info", {
+                autoHideDelay: 4000,
+            })
+            SaveToDB()
+            location.href = "/SingleGraph/{{ prevPID }}";
+        }
+
+        $(document).keypress(function (e) {
+                currentFrame = parseInt($(".slider-label").html().split('=')[1])
+                if (e.originalEvent.key === 'n') {
+                    $("#startV").val(currentFrame)
+                } else if (e.originalEvent.key === 'm') {
+                    $("#endV").val(currentFrame)
+                } else if (e.originalEvent.key === 'z') {
+                    //play
+                    document.getElementsByClassName("updatemenu-button")[0].dispatchEvent(new Event('click'));
+                } else if (e.originalEvent.key === 'x') {
+                    //pause
+                    document.getElementsByClassName("updatemenu-button")[1].dispatchEvent(new Event('click'));
+
+                } else if (e.originalEvent.key === 'i') {
+                    handleIKeypress()
+
+                } else if (e.originalEvent.key === 'o') {
+                    SaveToDB()
+
+                } else if (e.originalEvent.key === 'p') {
+                    handlePKeypress()
+                }
+
+            }
+        )
+        ;
+
+        function SaveToDB() {
+            $.ajax({
+                type: "POST",
+                headers: {
+                    'X-CSRFToken': "{{ csrf_token }}"
+                },
+                url: "/SingleGraph/{{ PID }}",
+                data: {
+                    startV: $("#startV").val(),
+                    endV: $("#endV").val(),
+                },
+                success: function (result) {
+                    console.log(result);
+                    $.notify("Saved to DB", "success", {
+                        autoHideDelay: 300,
+                    });
+                    return true;
+                },
+                error: function (result) {
+                    console.log(result);
+                    $.notify(result.responseText, "error", {
+                        autoHideDelay: 300,
+                    });
+                    return false;
+                }
+            });
+        }
+
+        document.focus()
     </script>
+
+
 {% endblock %}

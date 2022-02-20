@@ -1,5 +1,6 @@
 import json
 from collections import deque, Counter
+from functools import lru_cache
 from io import StringIO
 from math import ceil, floor
 
@@ -10,6 +11,9 @@ from django.shortcuts import render
 # Create your views here.
 from django.views.generic import TemplateView
 from numpy import nan
+from tinydb import TinyDB
+
+from WebApp.models import VideoAnnotations
 
 
 def demo(request):
@@ -38,26 +42,60 @@ class Graph(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(Graph, self).get_context_data(**kwargs)
         context['graph'], JSONDict = PlotSingleMP4Json(openposeOutputsMain)
-        return context
+        return context  
+
+
+tinyDB = TinyDB("D:/DystoniaCoalition/DystViz/NeckMovement_db.json")
+NeckMovement = tinyDB.table('NeckMovement')
 
 
 def SingleGraph(request, projectID):
+    if request.method == 'POST':
+        # // parse next and previous
+        if (request.POST.get('startV')).isdigit() and (request.POST.get('endV').isdigit()):
+
+            obj, created = VideoAnnotations.objects.get_or_create(pid=projectID, type="NeckMovement")
+
+            obj.start = int(request.POST.get('startV'))
+            obj.end = int(request.POST.get('endV'))
+            obj.save()
+            # NeckMovement.upsert(Document({"pid": projectID,
+            #                               'startV': int(request.POST.get('startV')),
+            #                               'endV': int(request.POST.get('endV'))},
+            #                              # //condition
+            #                              doc_id=projectID))
+            print("saved: ", obj)
+
+            return HttpResponse("Success")
+        else:
+            return HttpResponse("Please select both start and end time", status=500)
+
     context = {}
     df = getvideoProfile()
     singleF = df[df['PID'] == projectID]
+    # TODO: get next element and send to context
     fileName = singleF['NAME'].values[0]
+    context['PID'] = projectID
+    context['nextPID'] = int(df.loc[[(int(singleF.index.values) + 1) % len(df)]]['PID'].values)
+    context['prevPID'] = int(df.loc[[(int(singleF.index.values) - 1) % len(df)]]['PID'].values)
     context['graph'], JSONDict = PlotSingleMP4Json(fileName)
-    context['scatter'], context['most_common'] = CoordinateToChange(JSONDict)
-    context['IfFeaturePoll'] = IfFeaturePoll(JSONDict)
-    context['EstimateCLasses'] = EstimateCLasses(JSONDict)
+
+    ListOfScatterPlots = [{"data": CoordinateToChange(JSONDict), "name": "Cnt", "mode": "markers", },
+                          {"data": EstimateCLasses(JSONDict), "name": "SmthCnt", "mode": "markers", },
+                          # {"data": IfFeaturePoll(JSONDict), "name": "IfNeck", "mode": "markers", },
+                          {"data": HeadAngle(JSONDict), "name": "HeadAngle", "mode": "markers", },
+                          ]
+
+    context['MultipleScatterPlots'] = MultipleScatterPlots(ListOfScatterPlots)
     context['fileName'] = fileName
 
-    context['singleF'] = singleF.T.to_html(escape=False, border = 0)
+    context['singleF'] = singleF.T.to_html(escape=False, border=0)
 
+    NeckMovementData = VideoAnnotations.objects.filter(pid=projectID, type="NeckMovement")
+    if (NeckMovementData):
+        context['startV'] = NeckMovementData[0].start
+        context['endV'] = NeckMovementData[0].end
     return render(request, 'demo.html', context)
-
-
-import os
 
 
 def closest_node(node, nodes):
@@ -67,6 +105,7 @@ def closest_node(node, nodes):
 
 
 # @cache_page(60 * 60 * 15)
+
 def MP4toJson(mp4JsonFolder):
     mp4foldername = os.path.join(openposeOutputDirectory, mp4JsonFolder)
     openposeOutputs = os.listdir(mp4foldername)
@@ -128,6 +167,7 @@ import plotly.express as px
 
 
 # @cache_page(60 * 60 * 15)
+@lru_cache(maxsize=500)
 def PlotSingleMP4Json(mp4JsonFolderName):
     # for idv, eachFrame in enumerate(mp4toJSON[0:5]): #change
     # for p in eachFrame:
@@ -177,6 +217,14 @@ def list(request):
     # D:\DystoniaCoalition\scripts\videoProfile.ipynb
     df = getvideoProfile()
     df = df.drop(['NAME', ], axis=1)
+    df['NeckData'] = df['PID'].apply(lambda x:
+                                     str(VideoAnnotations.objects.filter(pid=x,
+                                                                         type="NeckMovement").first().start) + "-" + str(
+                                         VideoAnnotations.objects.filter(pid=x,
+                                                                         type="NeckMovement").first().end) + " :ANNTD"
+                                     if VideoAnnotations.objects.filter(
+                                         pid=x, type="NeckMovement") else None
+                                     )
     df['PID'] = df['PID'].apply(lambda x: '<a href="/SingleGraph/' + str(x) + '">' + str(x) + '</a>')
 
     table_html = df.to_html(escape=False)
@@ -187,23 +235,27 @@ def Profiling(request):
     return HttpResponse(open("D:/DystoniaCoalition/processed/videoProfiling.html").read())
 
 
+import plotly.graph_objects as go
+
+
+def MultipleScatterPlots(DataList):
+    with StringIO() as path:
+        fig = go.Figure()
+        for data in DataList:
+            fig.add_trace(go.Scatter(y=data["data"], mode=data["mode"], name=data["name"]))
+        fig.write_html(file=path, full_html=False, include_plotlyjs='cdn')
+        path.seek(0)
+        return path.read()
+
+
 def CoordinateToChange(Coordinates):
     for idx, eachFrame in enumerate(Coordinates):
         data = (eachFrame[1][0], len(eachFrame[1]))
     x = [i[0] for i in Coordinates]
     y = [len(i[1][0]) for i in Coordinates]
+    # most_common = Counter(y).most_common(5)
 
-    with StringIO() as path:
-        # with os.fdopen(figureVar, 'w') as f:
-        #     # f.write('TEST\n')
-
-        fig = px.scatter(y)
-        most_common = Counter(y).most_common(5)
-        fig.write_html(file=path,
-                       # post_script=post_script,
-                       full_html=False, include_plotlyjs='cdn', )
-        path.seek(0)
-        return path.read(), most_common
+    return y
 
 
 from numpy.lib.stride_tricks import sliding_window_view
@@ -217,20 +269,13 @@ def EstimateCLasses(Coordinates):
     left.extend(arr)
     right = [nan] * floor(wlen / 2)
     left.extend(right)
-    new = [Counter(e[e != 0]).most_common(1)[0][0] for e in
-           sliding_window_view(left, wlen)]
+    new = [Counter(e[e != 0]).most_common(1)[0][0] if len(e[e != 0]) else 0
+           for e in sliding_window_view(left, wlen)]
     pass
     #
     # x = [i[0] for i in Coordinates]
     # y = [len(i[1][0]) for i in Coordinates]
-    with StringIO() as path:
-        fig = px.scatter(new)
-        # fig.show()
-        fig.write_html(file=path,
-                       # post_script=post_script,
-                       full_html=False, include_plotlyjs='cdn', )
-        path.seek(0)
-        return path.read()
+    return new
 
 
 def IfFeaturePoll(jsonDict):
@@ -266,12 +311,50 @@ def IfFeaturePoll(jsonDict):
             #     dif = 1
             # ifFeaturePoll.append(dif)
     # itertools.groupby(ifFeaturePoll)
-    pass
-    with StringIO() as path:
-        fig = px.scatter(ifFeaturePoll)
-        # fig.show()
-        fig.write_html(file=path,
-                       # post_script=post_script,
-                       full_html=False, include_plotlyjs='cdn', )
-        path.seek(0)
-        return path.read()
+    return ifFeaturePoll
+
+
+import math
+
+
+def dot(vA, vB):
+    return vA[0] * vB[0] + vA[1] * vB[1]
+
+
+def ang(lineA, lineB):
+    # Get nicer vector form
+    vA = [(lineA[0]['x'] - lineA[1]['x']), (lineA[0]['y'] - lineA[1]['y'])]
+    vB = [(lineB[0]['x'] - lineB[1]['x']), (lineB[0]['y'] - lineB[1]['y'])]
+    # Get dot prod
+    dot_prod = dot(vA, vB)
+    # Get magnitudes
+    magA = dot(vA, vA) ** 0.5
+    magB = dot(vB, vB) ** 0.5
+    # Get cosine value
+    cos_ = dot_prod / magA / magB
+    # Get angle in radians and then convert to degrees
+    angle = math.acos(dot_prod / magB / magA)
+    # Basically doing angle <- angle mod 360
+    ang_deg = math.degrees(angle) % 360
+
+    if ang_deg - 180 >= 0:
+        # As in if statement
+        return 360 - ang_deg
+    else:
+
+        return ang_deg
+
+
+def HeadAngle(jsonDict):
+    HeadAngle = []
+    for frame in jsonDict:
+        for keypoints in frame[1]:  # like each person ; keypoints has t
+            pointDict = {int(x[2]): {"x": x[0], "y": x[1]} for x in keypoints}
+
+            if pointDict.get(0) and pointDict.get(1) and pointDict.get(2):
+                line1 = [pointDict.get(0), pointDict.get(1)]
+                line2 = [pointDict.get(2), pointDict.get(1)]
+                angle = ang(line1, line2)
+                HeadAngle.append(angle)
+                pass
+    return HeadAngle
