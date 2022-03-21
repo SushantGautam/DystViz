@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Dystonia Visualization{% endblock %}
+{% block topheading %}Dystonia Visualization{% endblock %}
+
+
+{% block content %}
+
+
+
+    <select name="cars" id="t-slider" onchange="sliderChanged()">
+        {% for v in images.items %}
+            <option value="score_{{ v.0 }}">score_{{ v.0 }}</option>
+        {% endfor %}
+    </select>
+    <select name="cars" id="b-slider" onchange="sliderChanged()">
+        {% for v in images.items %}
+            <option value="score_{{ v.0 }}">score_{{ v.0 }}</option>
+        {% endfor %}
+    </select>
+    <br>
+
+    <button onclick="handleNext('t', true)"> Prev</button>
+    <img src="" id="t-image" alt=""/>
+    <button onclick="handleNext('t', false)"> Next</button> <br>
+
+    <button onclick="handleNext('b', true)"> Prev</button>
+    <img src="" id="b-image" alt=""/>
+    <button onclick="handleNext('b', false)"> Next</button>
+
+    <script>
+        function handleNext(pos, reverse) {
+            if (pos === 't') {
+                elm = $("#t-image")
+                data = t_slider_content
+                idx = t_idx
+            } else {
+                elm = $("#b-image")
+                data = b_slider_content
+                idx = b_idx
+            }
+            if (reverse) {
+                if (idx === 0) {
+                    idx = data.length - 1
+                } else {
+                    idx -= 1
+                }
+            } else {
+                if (idx === (data.length - 1)) {
+                    idx = 0
+                } else {
+                    idx += 1
+                }
+            }
+            elm = elm.attr("src", data[idx])
+            if (pos === 't') {
+                t_idx = idx
+            } else {
+                b_idx = idx
+            }
+
+            document.querySelectorAll('img[src*=".gif"]').forEach(function (img) {
+                img.src = img.src
+            });
+
+        }
+
+
+        function arrayRotate(arr, reverse) {
+            if (reverse) arr.unshift(arr.pop());
+            else arr.push(arr.shift());
+            return arr;
+        }
+
+        {% for v in images.items %}
+            var score_{{v.0}} =  {{v.1|safe}};
+        {% endfor %}
+
+        t_idx = 0
+        b_idx = 0
+
+        function sliderChanged() {
+            t_slider = $("#t-slider").val();
+            b_slider = $("#b-slider").val();
+            console.log(t_idx, b_idx);
+            t_slider_content = window[t_slider];
+            b_slider_content = window[b_slider];
+            $("#t-image").attr("src", t_slider_content[t_idx]);
+            $("#b-image").attr("src", b_slider_content[b_idx]);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            sliderChanged();
+        }, false);
+    </script>
+{% endblock %}

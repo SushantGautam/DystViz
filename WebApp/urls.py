@@ -11,4 +11,6 @@ urlpatterns = [
     path('Profiling', views.Profiling, name='Profiling'),
     path('PlotSingleMP4Json/<str:mp4JsonFolderName>', views.PlotSingleMP4Json, name='PlotSingleMP4Json'),
     path('ExportNeck.csv', views.ExportNeckCSV, name='ExportNeckCSV'),
+    path('ComparePlots', views.ComparePlots, name='ComparePlots'),
+    path('CompareAvgPlots', views.CompareAvgPlots, name='CompareAvgPlots'),
 ]

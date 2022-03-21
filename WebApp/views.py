@@ -1,10 +1,8 @@
-import json
-from collections import deque, Counter
+from collections import Counter
 from functools import lru_cache
 from io import StringIO
 from math import ceil, floor
 
-import numpy as np
 import pandas as pd
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -97,7 +95,6 @@ def SingleGraph(request, projectID):
         context['startV'] = NeckMovementData[0].start
         context['endV'] = NeckMovementData[0].end
     return render(request, 'demo.html', context)
-
 
 
 # @cache_page(60 * 60 * 15)
@@ -312,3 +309,38 @@ def ExportNeckCSV(request):
     return HttpResponse(s.getvalue(),
                         # content_type='text/csv',
                         content_type='application/force-download')
+
+
+def ComparePlots(request):
+    files = os.listdir('D:\\DystoniaCoalition\\processed\\xlinePlot_and_gifs')
+    data = {}
+
+    for file in files:
+        x = file.split('_')
+        pid = int(x[1])
+        score = int(x[3].replace('.gif', ''))
+        old = list(data.get(score, []))
+        old.append("\static\\xlinePlot_and_gifs\\" + file)
+        data[score] = old
+    print(data)
+
+    return render(request, 'compare.html', {'images': dict(sorted(data.items()))})
+
+
+def CompareAvgPlots(request):
+    files = os.listdir('D:\DystoniaCoalition\processed\\averagePLot')
+    data = {}
+
+    for file in files:
+        # file.replace('.png', '').replace(" ", "")
+        if 'Mean_' in file:
+            name = "Mean"
+        else:
+            name = 'StandardDeviation'
+
+        old = list(data.get(name, []))
+        old.append("\static\\averagePLot\\" + file)
+        data[name] = old
+    print(data)
+
+    return render(request, 'compareAvg.html', {'images': dict(sorted(data.items()))})
