@@ -73,6 +73,7 @@
 
         {% for v in images.items %}
             var score_{{v.0}} =  {{v.1|safe}};
+            console.log("score_{{v.0}}", ({{v.1|safe}}).length)
         {% endfor %}
 
         t_idx = 0

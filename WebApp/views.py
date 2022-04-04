@@ -322,7 +322,7 @@ def ComparePlots(request):
         old = list(data.get(score, []))
         old.append("\static\\xlinePlot_and_gifs\\" + file)
         data[score] = old
-    print(data)
+    # print(data)
 
     return render(request, 'compare.html', {'images': dict(sorted(data.items()))})
 
