@@ -1,4 +1,12 @@
 # Deep Learning-based Pose Estimation for Dystonia Score Prediction
+Submitted by Sushant Gautam to Department of Electronics And Computer Engineering pn Partial Fulfillment of the requirement for the degree of Master of Science In Informatics And Intelligent Systems Engineering
+
+##Supervised By:
+Dr. Bishesh Khanal https://www.naamii.org.np/teams/bishesh-khanal/
+Dr. Nabin Koirala https://haskinslabs.org/people/nabin-koirala 
+Dr. Ajad Chhatkuli https://ee.ethz.ch/the-department/people-a-z/person-detail.MjM3Njk0.TGlzdC8zMjc5LC0xNjUwNTg5ODIw.html
+
+
 Videos of patients from Dystonia Colatition is processed with OpenPose
 
 ![image](https://github.com/SushantGautam/DystViz/blob/master/scripts/demo2.gif?raw=true)
