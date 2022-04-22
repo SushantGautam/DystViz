@@ -27,4 +27,5 @@ Difference in Model Score and Clinical Score showing that most of the scored are
 
 ## Report and Presentations:
 Report: https://raw.githubusercontent.com/SushantGautam/DystViz/master/defense-files/1.%20Defense_Report_Sushant_Deep%20Learning%20based%20Pose%20Estimation%20for%20Dystonia%20Score.pdf
+
 Presentaion: https://github.com/SushantGautam/DystViz/blob/master/defense-files/2.%20Defense_Slide_Sushant_Deep%20Learning%20based%20Pose%20Estimation%20for%20Dystonia%20Score.pdf
