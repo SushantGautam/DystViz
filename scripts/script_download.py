@@ -455,7 +455,7 @@ def download_file(url):
 
     print ('\nDownloading ', local_filename)
     # put your credentials here
-    with requests.get(url, stream=True, auth=('usernam,e', 'password')) as r:
+    with requests.get(url, stream=True, auth=('username', 'password')) as r:
         with open(local_filename, 'wb') as f:
             shutil.copyfileobj(r.raw, f)
             return local_filename
