@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# example fo file url
 files = [
     'https://dystonia.wustl.edu/DYS1001_20170222/DYS1001_20170222.mp4',
     'https://dystonia.wustl.edu/DYS1002_20121219/DYS1002_20121219.mp4',
@@ -453,7 +454,8 @@ def download_file(url):
         return 
 
     print ('\nDownloading ', local_filename)
-    with requests.get(url, stream=True, auth=('neuroimage\\nabin.koirala', 'P@ssword4u!!')) as r:
+    # put your credentials here
+    with requests.get(url, stream=True, auth=('usernam,e', 'password')) as r:
         with open(local_filename, 'wb') as f:
             shutil.copyfileobj(r.raw, f)
             return local_filename
